@@ -2,46 +2,15 @@
 #![allow(dead_code)]
 
 mod flags;
+mod memory;
 mod registers;
 
 use bitmatch::bitmatch;
 use flags::Flags;
+use memory::Memory;
 use registers::Registers;
 
 type Error = Box<dyn std::error::Error>;
-
-struct Memory {
-    pub vec: Vec<u8>,
-}
-
-impl<T: std::slice::SliceIndex<[u8]>> std::ops::Index<T> for Memory {
-    type Output = T::Output;
-
-    fn index(&self, idx: T) -> &Self::Output {
-        &self.vec[idx]
-    }
-}
-
-impl<T: std::slice::SliceIndex<[u8]>> std::ops::IndexMut<T> for Memory {
-    fn index_mut(&mut self, idx: T) -> &mut Self::Output {
-        &mut self.vec[idx]
-    }
-}
-
-use std::io::Read;
-impl Memory {
-    pub fn from(vec: Vec<u8>) -> Self {
-        Self { vec }
-    }
-
-    pub fn from_file(file: &str) -> Result<Self, Error> {
-        let mut f = std::fs::File::open(file)?;
-        let mut buffer = Vec::new();
-        f.read_to_end(&mut buffer)?;
-
-        Ok(Self { vec: buffer })
-    }
-}
 
 pub struct Cpu {
     reg: Registers,
@@ -86,11 +55,12 @@ impl Cpu {
         match opcode[0] {
             "0000_0000" => self.nop(),
             "1100_0011" => self.jmp(((opcode[2] as usize) << 8) | opcode[1] as usize),
+            "1100_1101" => self.call(((opcode[2] as usize) << 8) | opcode[1] as usize),
             "00aa_a110" => self.mvi(a.into(), opcode[1]),
-            "00aa_0001" => self.lxi(a, opcode[1], opcode[2]),
+            "00aa_0001" => self.lxi(a, opcode[2], opcode[1]),
             "0111_0110" => self.halt(), // overlap with the mov instruction
             "01aa_abbb" => self.mov(a.into(), b.into()),
-            "aaaa_aaaa" => panic!("Instruction {:#04x} is not implemented", a),
+            "aaaa_aaaa" => panic!("Instruction {0:#08b} {0:#04x} is not implemented", a),
         }
     }
 
@@ -98,7 +68,17 @@ impl Cpu {
         self.pc += 1;
     }
 
+    /// Unconditionnal jump
     fn jmp(&mut self, addr: usize) {
+        self.pc = addr;
+    }
+
+    /// Unconditionnal subroutine call
+    fn call(&mut self, addr: usize) {
+        let ret_addr = self.pc + 2;
+        let stack = self.ram.dword_mut(self.sp - 1);
+        *stack = ret_addr as u16;
+        self.sp -= 2;
         self.pc = addr;
     }
 
@@ -149,7 +129,7 @@ impl Cpu {
 
     /// Halt processor
     fn halt(&mut self) {
-        panic!("CPU HALTED");
+        panic!("CPU HALTED");
     }
 }
 
