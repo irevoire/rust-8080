@@ -15,7 +15,7 @@ type Error = Box<dyn std::error::Error>;
 pub struct Cpu {
     reg: Registers,
     /// stack pointer
-    sp: usize,
+    sp: u16,
     /// program counter
     pc: usize,
     ram: Memory,
@@ -61,11 +61,14 @@ impl Cpu {
             "1100_1101" => self.call(d16 as usize),
             // register
             "00rr_r101" => self.dcr(r.into()),
+            "00rr_r100" => self.inr(r.into()),
             "00aa_a110" => self.mvi(a.into(), opcode[1]),
             // register pair
             "00rr_0001" => self.lxi(r, d16),
             "00rr_1010" => self.ldax(r),
+            "00rr_1011" => self.dcx(r),
             "00rr_0011" => self.inx(r),
+            // opther
             "0111_0110" => self.halt(), // overlap with the mov instruction
             "01aa_abbb" => self.mov(a.into(), b.into()),
             "aaaa_aaaa" => panic!("Instruction {0:#08b} {0:#04x} is not implemented", a),
@@ -84,7 +87,7 @@ impl Cpu {
     /// Unconditionnal subroutine call
     fn call(&mut self, addr: usize) {
         let ret_addr = self.pc + 2;
-        let stack = self.ram.dword_mut(self.sp - 1);
+        let stack = self.ram.dword_mut((self.sp - 1) as usize);
         *stack = ret_addr as u16;
         self.sp -= 2;
         self.pc = addr;
@@ -107,21 +110,37 @@ impl Cpu {
             0x00 => *self.reg.bc_mut() = d16,
             0x01 => *self.reg.de_mut() = d16,
             0x02 => *self.reg.hl_mut() = d16,
-            0x03 => self.sp = d16 as usize,
+            0x03 => self.sp = d16,
             a => panic!("LXI called with invalid register pair: {:x}", a),
         }
         self.pc += 3;
     }
 
-    /// Increment register pair
-    fn inx(&mut self, rp: u8) {
-        match rp {
-            0x00 => *self.reg.bc_mut() += 1,
-            0x01 => *self.reg.de_mut() += 1,
-            0x02 => *self.reg.hl_mut() += 1,
-            0x03 => self.sp += 1,
+    /// Decrement register pair
+    /// Do not update any flags
+    fn dcx(&mut self, rp: u8) {
+        let rp = match rp {
+            0x00 => self.reg.bc_mut(),
+            0x01 => self.reg.de_mut(),
+            0x02 => self.reg.hl_mut(),
+            0x03 => &mut self.sp,
             a => panic!("INX called with invalid register pair: {:x}", a),
-        }
+        };
+        *rp = rp.wrapping_sub(1);
+        self.pc += 1;
+    }
+
+    /// Increment register pair
+    /// Do not update any flags
+    fn inx(&mut self, rp: u8) {
+        let rp = match rp {
+            0x00 => self.reg.bc_mut(),
+            0x01 => self.reg.de_mut(),
+            0x02 => self.reg.hl_mut(),
+            0x03 => &mut self.sp,
+            a => panic!("INX called with invalid register pair: {:x}", a),
+        };
+        *rp = rp.wrapping_add(1);
         self.pc += 1;
     }
 
@@ -143,6 +162,19 @@ impl Cpu {
             r => &mut self.reg[r],
         };
         let res = r.overflowing_sub(1);
+        *r = res.0;
+        self.flags.update(res, &[Zero, Sign, Parity, AuxCarry]);
+        self.pc += 1;
+    }
+
+    /// Increment register
+    /// update the flags: Zero, Sign, Parity, AuxiliaryCarry
+    fn inr(&mut self, r: usize) {
+        let r = match r {
+            0x06 => &mut self.ram[*self.reg.hl() as usize],
+            r => &mut self.reg[r],
+        };
+        let res = r.overflowing_add(1);
         *r = res.0;
         self.flags.update(res, &[Zero, Sign, Parity, AuxCarry]);
         self.pc += 1;
