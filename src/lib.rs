@@ -1,6 +1,7 @@
 #![allow(mutable_borrow_reservation_conflict)]
 #![allow(dead_code)]
 
+mod decompiler;
 mod flags;
 mod memory;
 mod registers;
@@ -66,8 +67,7 @@ impl Cpu {
     #[bitmatch]
     pub fn cycle(&mut self) {
         let opcode = &self.ram[self.pc..];
-        println!("{:x}", opcode[0]);
-        dbg!(self.pc);
+        println!("{:#04x}\t{}", self.pc, decompiler::instr(opcode));
 
         #[bitmatch]
         match opcode[0] {
