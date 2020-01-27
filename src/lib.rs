@@ -22,6 +22,22 @@ pub struct Cpu {
     flags: Flags,
 }
 
+/// merge the byte 2 and 3 of the opcode to create a 16 bits number
+fn d16(opcode: &[u8]) -> u16 {
+    if opcode.len() < 3 {
+        panic!("Malformed opcode");
+    }
+    ((opcode[2] as u16) << 8) | opcode[1] as u16
+}
+
+/// merge the byte 2 and 3 of the opcode to create a usize
+fn addr(opcode: &[u8]) -> usize {
+    if opcode.len() < 3 {
+        panic!("Malformed opcode");
+    }
+    ((opcode[2] as usize) << 8) | opcode[1] as usize
+}
+
 impl Cpu {
     pub fn from_filename(file: &str) -> Result<Self, Error> {
         Ok(Self {
@@ -50,21 +66,20 @@ impl Cpu {
     #[bitmatch]
     pub fn cycle(&mut self) {
         let opcode = &self.ram[self.pc..];
-        let d16 = ((opcode[2] as u16) << 8) | opcode[1] as u16;
         println!("{:x}", opcode[0]);
         dbg!(self.pc);
 
         #[bitmatch]
         match opcode[0] {
             "0000_0000" => self.nop(),
-            "1100_0011" => self.jmp(d16 as usize),
-            "1100_1101" => self.call(d16 as usize),
+            "1100_0011" => self.jmp(addr(opcode)),
+            "1100_1101" => self.call(addr(opcode)),
             // register
             "00rr_r101" => self.dcr(r.into()),
             "00rr_r100" => self.inr(r.into()),
             "00aa_a110" => self.mvi(a.into(), opcode[1]),
             // register pair
-            "00rr_0001" => self.lxi(r, d16),
+            "00rr_0001" => self.lxi(r, d16(opcode)),
             "00rr_1010" => self.ldax(r),
             "00rr_1011" => self.dcx(r),
             "00rr_0011" => self.inx(r),
