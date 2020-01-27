@@ -59,6 +59,7 @@ impl Cpu {
             "1100_1101" => self.call(d16 as usize),
             "00aa_a110" => self.mvi(a.into(), opcode[1]),
             "00aa_0001" => self.lxi(a, d16),
+            "00aa_1010" => self.ldax(a),
             "0111_0110" => self.halt(), // overlap with the mov instruction
             "01aa_abbb" => self.mov(a.into(), b.into()),
             "aaaa_aaaa" => panic!("Instruction {0:#08b} {0:#04x} is not implemented", a),
@@ -83,15 +84,25 @@ impl Cpu {
         self.pc = addr;
     }
 
+    /// Load indirect through BC or DE
+    fn ldax(&mut self, rp: u8) {
+        self.reg.a = match rp {
+            0x00 => self.ram[*self.reg.bc() as usize],
+            0x01 => self.ram[*self.reg.de() as usize],
+            a => panic!("LDAX called with invalid register pair: {:x}", a),
+        };
+        self.pc += 1;
+    }
+
     /// Load register pair immediate
-    fn lxi(&mut self, instr: u8, d16: u16) {
+    fn lxi(&mut self, rp: u8, d16: u16) {
         let d16 = u16::from_be(d16);
-        match instr {
+        match rp {
             0x00 => *self.reg.bc_mut() = d16,
             0x01 => *self.reg.de_mut() = d16,
             0x02 => *self.reg.hl_mut() = d16,
             0x03 => self.sp = d16 as usize,
-            a => panic!("LXI called with invalid value: {:x}", a),
+            a => panic!("LXI called with invalid register pair: {:x}", a),
         }
         self.pc += 3;
     }
