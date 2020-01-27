@@ -50,14 +50,15 @@ impl Cpu {
     #[bitmatch]
     pub fn cycle(&mut self) {
         let opcode = &self.ram[self.pc..];
+        let d16 = ((opcode[2] as u16) << 8) | opcode[1] as u16;
 
         #[bitmatch]
         match opcode[0] {
             "0000_0000" => self.nop(),
-            "1100_0011" => self.jmp(((opcode[2] as usize) << 8) | opcode[1] as usize),
-            "1100_1101" => self.call(((opcode[2] as usize) << 8) | opcode[1] as usize),
+            "1100_0011" => self.jmp(d16 as usize),
+            "1100_1101" => self.call(d16 as usize),
             "00aa_a110" => self.mvi(a.into(), opcode[1]),
-            "00aa_0001" => self.lxi(a, opcode[2], opcode[1]),
+            "00aa_0001" => self.lxi(a, d16),
             "0111_0110" => self.halt(), // overlap with the mov instruction
             "01aa_abbb" => self.mov(a.into(), b.into()),
             "aaaa_aaaa" => panic!("Instruction {0:#08b} {0:#04x} is not implemented", a),
@@ -83,21 +84,13 @@ impl Cpu {
     }
 
     /// Load register pair immediate
-    fn lxi(&mut self, instr: u8, d1: u8, d2: u8) {
+    fn lxi(&mut self, instr: u8, d16: u16) {
+        let d16 = u16::from_be(d16);
         match instr {
-            0x00 => {
-                self.reg.c = d1;
-                self.reg.b = d2;
-            }
-            0x01 => {
-                self.reg.e = d1;
-                self.reg.d = d2;
-            }
-            0x02 => {
-                self.reg.l = d1;
-                self.reg.h = d2;
-            }
-            0x03 => self.sp = ((d2 as usize) << 8) | d1 as usize,
+            0x00 => *self.reg.bc_mut() = d16,
+            0x01 => *self.reg.de_mut() = d16,
+            0x02 => *self.reg.hl_mut() = d16,
+            0x03 => self.sp = d16 as usize,
             a => panic!("LXI called with invalid value: {:x}", a),
         }
         self.pc += 3;
