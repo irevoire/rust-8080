@@ -51,6 +51,8 @@ impl Cpu {
     pub fn cycle(&mut self) {
         let opcode = &self.ram[self.pc..];
         let d16 = ((opcode[2] as u16) << 8) | opcode[1] as u16;
+        println!("{:x}", opcode[0]);
+        dbg!(self.pc);
 
         #[bitmatch]
         match opcode[0] {
@@ -58,8 +60,10 @@ impl Cpu {
             "1100_0011" => self.jmp(d16 as usize),
             "1100_1101" => self.call(d16 as usize),
             "00aa_a110" => self.mvi(a.into(), opcode[1]),
-            "00aa_0001" => self.lxi(a, d16),
-            "00aa_1010" => self.ldax(a),
+            // register pair
+            "00rr_0001" => self.lxi(r, d16),
+            "00rr_1010" => self.ldax(r),
+            "00rr_0011" => self.inx(r),
             "0111_0110" => self.halt(), // overlap with the mov instruction
             "01aa_abbb" => self.mov(a.into(), b.into()),
             "aaaa_aaaa" => panic!("Instruction {0:#08b} {0:#04x} is not implemented", a),
@@ -105,6 +109,18 @@ impl Cpu {
             a => panic!("LXI called with invalid register pair: {:x}", a),
         }
         self.pc += 3;
+    }
+
+    /// Increment register pair
+    fn inx(&mut self, rp: u8) {
+        match rp {
+            0x00 => *self.reg.bc_mut() += 1,
+            0x01 => *self.reg.de_mut() += 1,
+            0x02 => *self.reg.hl_mut() += 1,
+            0x03 => self.sp += 1,
+            a => panic!("INX called with invalid register pair: {:x}", a),
+        }
+        self.pc += 1;
     }
 
     /// Move immediate to register
