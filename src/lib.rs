@@ -6,7 +6,7 @@ mod memory;
 mod registers;
 
 use bitmatch::bitmatch;
-use flags::Flags;
+use flags::*;
 use memory::Memory;
 use registers::Registers;
 
@@ -59,6 +59,8 @@ impl Cpu {
             "0000_0000" => self.nop(),
             "1100_0011" => self.jmp(d16 as usize),
             "1100_1101" => self.call(d16 as usize),
+            // register
+            "00rr_r101" => self.dcr(r.into()),
             "00aa_a110" => self.mvi(a.into(), opcode[1]),
             // register pair
             "00rr_0001" => self.lxi(r, d16),
@@ -131,6 +133,19 @@ impl Cpu {
         };
         *a = val;
         self.pc += 2;
+    }
+
+    /// Decrement register
+    /// update the flags: Zero, Sign, Parity, AuxiliaryCarry
+    fn dcr(&mut self, r: usize) {
+        let r = match r {
+            0x06 => &mut self.ram[*self.reg.hl() as usize],
+            r => &mut self.reg[r],
+        };
+        let res = r.overflowing_sub(1);
+        *r = res.0;
+        self.flags.update(res, &[Zero, Sign, Parity, AuxCarry]);
+        self.pc += 1;
     }
 
     /// Move register nb a to register nb b
@@ -220,5 +235,13 @@ mod tests {
     fn test_halt() {
         let mut cpu = Cpu::from_bytes(vec![0b01110110]);
         cpu.cycle();
+    }
+
+    #[test]
+    fn test_dcr() {
+        let mut cpu = Cpu::from_bytes(vec![0]);
+        cpu.dcr(0);
+        assert_eq!(cpu.flags.sign, true);
+        assert_eq!(cpu.flags.carry, false);
     }
 }
