@@ -6,6 +6,7 @@ pub fn instr(opcode: &[u8]) -> String {
     match opcode[0] {
         "0000_0000" => "NOP".to_string(),
         "1100_0011" => format!("JMP\t{}", addr(opcode)),
+        "11cc_c010" => format!("{}\t{}", cond_jmp(c), addr(opcode)),
         "1100_1101" => format!("CALL\t{}", addr(opcode)),
         // register
         "00rr_r101" => format!("DCR\t{}", reg(r)),
@@ -21,6 +22,21 @@ pub fn instr(opcode: &[u8]) -> String {
         "01aa_abbb" => format!("MOV\t{}\t{}", reg(a), reg(b)),
         "aaaa_aaaa" => panic!("Instruction {0:#08b} {0:#04x} is not implemented", a),
     }
+}
+
+fn cond_jmp(cond: u8) -> String {
+    let res = match cond {
+        0b000 => "JNZ",
+        0b001 => "JZ",
+        0b010 => "JNC",
+        0b011 => "JC",
+        0b100 => "JPO",
+        0b101 => "JPE",
+        0b110 => "JP",
+        0b111 => "JM",
+        c => panic!("cond_jmp called with invalid value: {:b}", c),
+    };
+    res.to_string()
 }
 
 fn addr(opcode: &[u8]) -> String {

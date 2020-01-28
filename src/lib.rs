@@ -67,12 +67,13 @@ impl Cpu {
     #[bitmatch]
     pub fn cycle(&mut self) {
         let opcode = &self.ram[self.pc..];
-        println!("{:#08x}\t{}", self.pc, decompiler::instr(opcode));
+        println!("{:04x}\t{}", self.pc, decompiler::instr(opcode));
 
         #[bitmatch]
         match opcode[0] {
             "0000_0000" => self.nop(),
             "1100_0011" => self.jmp(addr(opcode)),
+            "11cc_c010" => self.cond_jmp(c, addr(opcode)),
             "1100_1101" => self.call(addr(opcode)),
             // register
             "00rr_r101" => self.dcr(r.into()),
@@ -97,6 +98,26 @@ impl Cpu {
     /// Unconditionnal jump
     fn jmp(&mut self, addr: usize) {
         self.pc = addr;
+    }
+
+    /// Conditionnal jump
+    fn cond_jmp(&mut self, cond: u8, addr: usize) {
+        let cond = match cond {
+            0b000 => !self.flags.zero,
+            0b001 => self.flags.zero,
+            0b010 => !self.flags.carry,
+            0b011 => self.flags.carry,
+            0b100 => !self.flags.parity,
+            0b101 => self.flags.parity,
+            0b110 => !self.flags.sign,
+            0b111 => self.flags.sign,
+            c => panic!("cond_jmp called with invalid value: {:b}", c),
+        };
+        if cond {
+            self.pc = addr;
+        } else {
+            self.pc += 2;
+        }
     }
 
     /// Unconditionnal subroutine call
