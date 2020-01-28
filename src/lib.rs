@@ -67,7 +67,7 @@ impl Cpu {
     #[bitmatch]
     pub fn cycle(&mut self) {
         let opcode = &self.ram[self.pc..];
-        println!("{:#04x}\t{}", self.pc, decompiler::instr(opcode));
+        println!("{:#08x}\t{}", self.pc, decompiler::instr(opcode));
 
         #[bitmatch]
         match opcode[0] {

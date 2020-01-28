@@ -24,11 +24,11 @@ pub fn instr(opcode: &[u8]) -> String {
 }
 
 fn addr(opcode: &[u8]) -> String {
-    format!("\x1B[1;35m{:#04x}{:02x}\x1B[m", opcode[1], opcode[2])
+    format!("\x1B[1;35m{:#04x}{:02x}\x1B[m", opcode[2], opcode[1])
 }
 
 fn d16(opcode: &[u8]) -> String {
-    format!("\x1B[1;33m${:#04x}{:02x}\x1B[m", opcode[1], opcode[2])
+    format!("\x1B[1;33m#${:#04x}{:02x}\x1B[m", opcode[2], opcode[1])
 }
 
 fn reg(r: u8) -> String {
