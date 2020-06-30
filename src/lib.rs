@@ -75,6 +75,7 @@ impl Cpu {
             "1100_0011" => self.jmp(addr(opcode)),
             "11cc_c010" => self.cond_jmp(c, addr(opcode)),
             "1100_1101" => self.call(addr(opcode)),
+            "1100_1001" => self.ret(),
             // register
             "00rr_r101" => self.dcr(r.into()),
             "00rr_r100" => self.inr(r.into()),
@@ -123,10 +124,21 @@ impl Cpu {
     /// Unconditionnal subroutine call
     fn call(&mut self, addr: usize) {
         let ret_addr = self.pc + 2;
-        let stack = self.ram.dword_mut((self.sp - 1) as usize);
+        let stack = self.ram.dword_mut((self.sp) as usize);
         *stack = ret_addr as u16;
+        println!("SP {:x}", self.sp);
+        println!("SAVE {:x}", ret_addr);
         self.sp -= 2;
         self.pc = addr;
+    }
+
+    /// Return from a subroutine call
+    fn ret(&mut self) {
+        let ret_addr = usize::from_le(*self.ram.dword(self.sp as usize) as usize);
+        println!("SP {:x}", self.sp);
+        println!("RET {:x}", ret_addr);
+        self.pc = ret_addr;
+        self.sp += 2;
     }
 
     /// Load indirect through BC or DE
