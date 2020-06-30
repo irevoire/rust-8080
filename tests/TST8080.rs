@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 #[test]
 fn main() {
     let file = "tests/bin/TST8080.COM";
