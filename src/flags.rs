@@ -1,4 +1,4 @@
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Flags {
     pub sign: bool,
     pub zero: bool,
@@ -28,8 +28,8 @@ impl Flags {
             match f {
                 Sign => self.sign = val & 0x80 != 0,
                 Zero => self.zero = val == 0,
-                Parity => self.parity = val.count_zeros() == 4,
-                Carry => self.aux_carry = overflow,
+                Parity => self.parity = val.count_zeros() % 2 == 0,
+                Carry => self.carry = overflow,
                 AuxCarry => (),
             }
         }

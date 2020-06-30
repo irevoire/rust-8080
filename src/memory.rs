@@ -24,12 +24,15 @@ impl Memory {
         Self { vec }
     }
 
-    pub fn from_file(file: &str) -> Result<Self, Error> {
+    pub fn from_file_at(file: &str, starting_addr: usize) -> Result<Self, Error> {
         let mut f = std::fs::File::open(file)?;
         let mut buffer = Vec::new();
         f.read_to_end(&mut buffer)?;
 
-        Ok(Self { vec: buffer })
+        let mut vec = vec![0; starting_addr];
+        vec.append(&mut buffer);
+
+        Ok(Self { vec })
     }
 
     pub fn dword(&self, idx: usize) -> &u16 {

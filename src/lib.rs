@@ -40,14 +40,14 @@ fn addr(opcode: &[u8]) -> usize {
 }
 
 impl Cpu {
-    pub fn from_filename(file: &str) -> Result<Self, Error> {
+    pub fn from_filename_at(file: &str, starting_addr: usize) -> Result<Self, Error> {
         Ok(Self {
             reg: Registers::new(),
 
             sp: 0,
-            pc: 0,
+            pc: starting_addr,
 
-            ram: Memory::from_file(file)?,
+            ram: Memory::from_file_at(file, starting_addr)?,
             flags: Flags::new(),
         })
     }
@@ -87,11 +87,16 @@ impl Cpu {
             "00rr_1010" => self.ldax(r),
             "00rr_1011" => self.dcx(r),
             "00rr_0011" => self.inx(r),
+            "11rr_0001" => self.pop(r),
             // other
             "0111_0110" => self.halt(), // overlap with the mov instruction
             "01aa_abbb" => self.mov(a.into(), b.into()),
             "aaaa_aaaa" => panic!("Instruction {0:#010b} {0:#04x} is not implemented", a),
         }
+
+        println!("sp: {0} {0:#x}", self.sp);
+        println!("registers: {:?}", self.reg);
+        println!("flags: {:?}", self.flags);
     }
 
     fn nop(&mut self) {
@@ -125,12 +130,12 @@ impl Cpu {
 
     /// Unconditionnal subroutine call
     fn call(&mut self, addr: usize) {
-        let ret_addr = self.pc + 2;
+        let ret_addr = self.pc + 3;
         let stack = self.ram.dword_mut((self.sp) as usize);
         *stack = ret_addr as u16;
         println!("SP {:x}", self.sp);
         println!("SAVE {:x}", ret_addr);
-        self.sp -= 2;
+        self.sp += 2;
         self.pc = addr;
     }
 
@@ -140,7 +145,7 @@ impl Cpu {
         println!("SP {:x}", self.sp);
         println!("RET {:x}", ret_addr);
         self.pc = ret_addr;
-        self.sp += 2;
+        self.sp -= 2;
     }
 
     /// Load indirect through BC or DE
@@ -155,7 +160,6 @@ impl Cpu {
 
     /// Load register pair immediate
     fn lxi(&mut self, rp: u8, d16: u16) {
-        let d16 = u16::from_be(d16);
         match rp {
             0x00 => *self.reg.bc_mut() = d16,
             0x01 => *self.reg.de_mut() = d16,
@@ -174,7 +178,7 @@ impl Cpu {
             0x01 => self.reg.de_mut(),
             0x02 => self.reg.hl_mut(),
             0x03 => &mut self.sp,
-            a => panic!("INX called with invalid register pair: {:x}", a),
+            a => panic!("DNX called with invalid register pair: {:x}", a),
         };
         *rp = rp.wrapping_sub(1);
         self.pc += 1;
@@ -191,6 +195,33 @@ impl Cpu {
             a => panic!("INX called with invalid register pair: {:x}", a),
         };
         *rp = rp.wrapping_add(1);
+        self.pc += 1;
+    }
+
+    /// Pop  register pair from the stack
+    /// *2 = RP=11 refers to PSW for PUSH/POP (cannot push/pop SP).
+    /// When PSW is POP'd, ALL flags are affected.
+    fn pop(&mut self, rp: u8) {
+        // RP=11
+        if rp == 0x03 {
+            let res = self.ram[self.sp as usize];
+            self.sp += 1;
+            self.flags
+                .update((res, false), &[Zero, Sign, Parity, Carry, AuxCarry]);
+            self.pc += 1;
+            self.reg.a = self.ram[self.sp as usize];
+            self.sp += 1;
+            return;
+        }
+        let rp = match rp {
+            0x00 => self.reg.bc_mut(),
+            0x01 => self.reg.de_mut(),
+            0x02 => self.reg.hl_mut(),
+            a => panic!("POP called with invalid register pair: {:x}", a),
+        };
+        self.sp -= 2;
+        let tmp = *self.ram.dword(self.sp as usize);
+        *rp = ((tmp & 0xff) << 8) | (tmp >> 8);
         self.pc += 1;
     }
 

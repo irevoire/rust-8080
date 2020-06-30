@@ -1,4 +1,4 @@
-#[derive(Default)]
+#[derive(Debug, Default)]
 #[repr(C, packed)]
 pub struct Registers {
     pub a: u8,

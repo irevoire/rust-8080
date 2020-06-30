@@ -19,7 +19,8 @@ pub fn instr(opcode: &[u8]) -> String {
         "00rr_1010" => format!("LDAX\t{}", regpair(r)),
         "00rr_1011" => format!("DCR\t{}", regpair(r)),
         "00rr_0011" => format!("INX\t{}", regpair(r)),
-        // opther
+        "11rr_0001" => format!("POP\t{}", regpair(r)),
+        // other
         "0111_0110" => format!("HALT"),
         "01aa_abbb" => format!("MOV\t{}\t{}", reg(a), reg(b)),
         "aaaa_aaaa" => panic!("Instruction {0:#010b} {0:#04x} is not implemented", a),
