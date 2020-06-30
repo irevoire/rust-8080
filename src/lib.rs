@@ -79,16 +79,18 @@ impl Cpu {
             // register
             "00rr_r101" => self.dcr(r.into()),
             "00rr_r100" => self.inr(r.into()),
+            "1011_1sss" => self.cmp(s.into()),
+            "1111_1110" => self.cpi(opcode[1]),
             "00aa_a110" => self.mvi(a.into(), opcode[1]),
             // register pair
             "00rr_0001" => self.lxi(r, d16(opcode)),
             "00rr_1010" => self.ldax(r),
             "00rr_1011" => self.dcx(r),
             "00rr_0011" => self.inx(r),
-            // opther
+            // other
             "0111_0110" => self.halt(), // overlap with the mov instruction
             "01aa_abbb" => self.mov(a.into(), b.into()),
-            "aaaa_aaaa" => panic!("Instruction {0:#08b} {0:#04x} is not implemented", a),
+            "aaaa_aaaa" => panic!("Instruction {0:#010b} {0:#04x} is not implemented", a),
         }
     }
 
@@ -190,6 +192,22 @@ impl Cpu {
         };
         *rp = rp.wrapping_add(1);
         self.pc += 1;
+    }
+
+    /// Compare register with A
+    fn cmp(&mut self, r: usize) {
+        let res = self.reg.a.overflowing_sub(self.reg[r]);
+        self.flags
+            .update(res, &[Zero, Sign, Parity, Carry, AuxCarry]);
+        self.pc += 1;
+    }
+
+    /// Compare immediate with A
+    fn cpi(&mut self, val: u8) {
+        let res = self.reg.a.overflowing_sub(val);
+        self.flags
+            .update(res, &[Zero, Sign, Parity, Carry, AuxCarry]);
+        self.pc += 2;
     }
 
     /// Move immediate to register

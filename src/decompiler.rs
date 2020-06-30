@@ -12,6 +12,7 @@ pub fn instr(opcode: &[u8]) -> String {
         // register
         "00rr_r101" => format!("DCR\t{}", reg(r)),
         "00rr_r100" => format!("INR\t{}", reg(r)),
+        "1111_1110" => format!("CPI\t{:#04x}", opcode[1]),
         "00rr_r110" => format!("MVI\t{}\t{:#04x}", reg(r), opcode[1]),
         // register pair
         "00rr_0001" => format!("LXI\t{}\t{}", regpair(r), d16(opcode)),
@@ -21,7 +22,7 @@ pub fn instr(opcode: &[u8]) -> String {
         // opther
         "0111_0110" => format!("HALT"),
         "01aa_abbb" => format!("MOV\t{}\t{}", reg(a), reg(b)),
-        "aaaa_aaaa" => panic!("Instruction {0:#08b} {0:#04x} is not implemented", a),
+        "aaaa_aaaa" => panic!("Instruction {0:#010b} {0:#04x} is not implemented", a),
     }
 }
 
