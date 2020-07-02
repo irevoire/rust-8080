@@ -31,6 +31,14 @@ impl Memory {
 
         let mut vec = vec![0; starting_addr];
         vec.append(&mut buffer);
+        // inject "out 1, a at 0x0000 (signal to stop the test)
+        vec[0] = 0xD3;
+        vec[1] = 0x00;
+
+        // inject "in a,0" at 0x0005 (signal to output some characters)
+        vec[5] = 0xDB;
+        vec[6] = 0x00;
+        vec[7] = 0xC9;
 
         Ok(Self { vec })
     }

@@ -147,8 +147,9 @@ impl Cpu {
 
     /// Load H:L from memory
     fn lhld(&mut self, a: u16) {
-        let dword = self.ram.dword(a as usize);
-        *self.reg.hl_mut() = *dword;
+        println!("looking at address {}", a);
+        let dword = *self.ram.dword(a as usize);
+        *self.reg.hl_mut() = (dword << 8) | (dword >> 8);
         self.pc += 3;
     }
 
