@@ -83,6 +83,7 @@ impl Cpu {
             "1111_1110" => self.cpi(opcode[1]),
             "00aa_a110" => self.mvi(a.into(), opcode[1]),
             // register pair
+            "00101010 " => self.lhld(d16(opcode)),
             "00rr_0001" => self.lxi(r, d16(opcode)),
             "00rr_1010" => self.ldax(r),
             "00rr_1011" => self.dcx(r),
@@ -133,8 +134,6 @@ impl Cpu {
         let ret_addr = self.pc + 3;
         let stack = self.ram.dword_mut((self.sp) as usize);
         *stack = ret_addr as u16;
-        println!("SP {:x}", self.sp);
-        println!("SAVE {:x}", ret_addr);
         self.sp += 2;
         self.pc = addr;
     }
@@ -142,10 +141,15 @@ impl Cpu {
     /// Return from a subroutine call
     fn ret(&mut self) {
         let ret_addr = usize::from_le(*self.ram.dword(self.sp as usize) as usize);
-        println!("SP {:x}", self.sp);
-        println!("RET {:x}", ret_addr);
         self.pc = ret_addr;
         self.sp -= 2;
+    }
+
+    /// Load H:L from memory
+    fn lhld(&mut self, a: u16) {
+        let dword = self.ram.dword(a as usize);
+        *self.reg.hl_mut() = *dword;
+        self.pc += 3;
     }
 
     /// Load indirect through BC or DE
