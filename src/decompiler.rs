@@ -21,6 +21,7 @@ pub fn instr(opcode: &[u8]) -> String {
         "00rr_1010" => format!("LDAX\t{}", regpair(r)),
         "00rr_1011" => format!("DCR\t{}", regpair(r)),
         "00rr_0011" => format!("INX\t{}", regpair(r)),
+        "11rr_0101" => format!("PUSH\t{}", regpair(r)),
         "11rr_0001" => format!("POP\t{}", regpair(r)),
         // other
         "0111_0110" => format!("HALT"),
