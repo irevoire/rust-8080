@@ -12,6 +12,13 @@ use anyhow::Result;
 use Flags::*;
 
 pub struct Cpu {
+    /// User function to read from port.
+    /// Called when the IN instruction appear
+    pub port_in: Option<Box<dyn Fn(&mut Cpu, u8) -> u8>>,
+    /// User function to write to port.
+    /// Called when the OUT instruction appear
+    pub port_out: Option<Box<dyn Fn(&mut Cpu, u8, u8)>>,
+
     pub reg: Registers,
     /// stack pointer
     pub sp: u16,
@@ -39,6 +46,8 @@ fn addr(opcode: &[u8]) -> usize {
 impl Cpu {
     pub fn from_filename_at(file: &str, starting_addr: usize) -> Result<Self> {
         Ok(Self {
+            port_in: None,
+            port_out: None,
             reg: Registers::new(),
 
             sp: 0,
@@ -50,6 +59,8 @@ impl Cpu {
 
     pub fn from_raw(from: Vec<u8>) -> Self {
         Self {
+            port_in: None,
+            port_out: None,
             reg: Registers::new(),
 
             sp: 0,
