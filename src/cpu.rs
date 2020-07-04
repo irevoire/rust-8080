@@ -1,3 +1,12 @@
+mod dcr;
+mod halt;
+mod mov;
+mod mvi;
+mod nop;
+mod pop;
+mod push;
+mod sphl;
+
 use crate::*;
 use anyhow::Result;
 
@@ -92,10 +101,6 @@ impl Cpu {
         println!("flags: {:?}", self.flags);
     }
 
-    fn nop(&mut self) {
-        self.pc += 1;
-    }
-
     /// Unconditionnal jump
     fn jmp(&mut self, addr: usize) {
         self.pc = addr;
@@ -135,23 +140,6 @@ impl Cpu {
         let ret_addr = usize::from_le(*self.ram.dword(self.sp as usize) as usize);
         self.pc = ret_addr;
         self.sp -= 2;
-    }
-
-    /// Set SP to content of H:L
-    /// ```rust
-    /// use rust_8080::*;
-    ///
-    /// let mut cpu = Cpu::from_raw(vec![0b11111001]);
-    /// cpu.pc = 0;
-    /// cpu.sp = 0;
-    /// *cpu.reg.hl_mut() = 42;
-    /// cpu.cycle();
-    /// assert_eq!(cpu.sp, 42);
-    /// assert_eq!(cpu.pc, 1);
-    /// ```
-    fn sphl(&mut self) {
-        self.sp = *self.reg.hl();
-        self.pc += 1;
     }
 
     /// Load H:L from memory
@@ -211,117 +199,6 @@ impl Cpu {
         self.pc += 1;
     }
 
-    /// Push register pair from the stack
-    /// RP=11 refers to PSW for PUSH (cannot push SP).
-    /// see the [push_psw](#method.push_psw) method
-    /// ```rust
-    /// use rust_8080::*;
-    ///
-    /// let mut cpu = Cpu::from_raw(vec![0b11010101, 0x00, 0xff, 0xaa]);
-    /// cpu.pc = 0; // push the content of 01 (de) to sp
-    /// cpu.sp = 0; // make sp point to 0xff, 0xaa
-    /// *cpu.reg.de_mut() = 0x9911;
-    /// cpu.cycle();
-    /// assert_eq!(cpu.sp, 2);
-    /// assert_eq!(cpu.pc, 1);
-    /// assert_eq!(cpu.ram[2], 0x11);
-    /// assert_eq!(cpu.ram[3], 0x99);
-    /// ```
-    fn push(&mut self, rp: u8) {
-        let rp = match rp {
-            0x00 => self.reg.bc(),
-            0x01 => self.reg.de(),
-            0x02 => self.reg.hl(),
-            a => panic!("POP called with invalid register pair: {:x}", a),
-        };
-        self.sp += 2;
-        *self.ram.dword_mut(self.sp as usize) = *rp;
-        self.pc += 1;
-    }
-
-    /// Push PSW from the stack
-    /// see the function [push](#method.push) for other registers
-    /// ```rust
-    /// use rust_8080::*;
-    ///
-    /// let mut cpu = Cpu::from_raw(vec![0b11110101, 0x00, 0xff, 0xaa]);
-    /// cpu.pc = 0; // push the content of 01 (de) to sp
-    /// cpu.sp = 1; // make sp point to 0xff, 0xaa
-    /// cpu.reg.a = 0x99;
-    /// cpu.cycle();
-    /// assert_eq!(cpu.sp, 3);
-    /// assert_eq!(cpu.pc, 1);
-    /// assert_eq!(cpu.ram[2], 0x99);
-    /// // assert_eq!(cpu.ram[3], 0x??); I have no idea of what it should be
-    /// ```
-    fn push_psw(&mut self) {
-        self.sp += 1;
-        self.ram[self.sp as usize] = self.reg.a;
-        self.sp += 1;
-        self.ram[self.sp as usize] = self.flags.as_byte();
-        self.pc += 1;
-    }
-
-    /// Pop register pair from the stack
-    /// RP=11 refers to PSW for POP (cannot pop SP).
-    /// see the [pop_psw](#method.pop_psw) method
-    /// ```rust
-    /// use rust_8080::*;
-    ///
-    /// let mut cpu = Cpu::from_raw(vec![0b11010001, 0x00, 0xff, 0xaa]);
-    /// cpu.pc = 0; // pop the content of sp to 01 (de)
-    /// cpu.sp = 4; // make sp point to 0xff, 0xff
-    /// *cpu.reg.de_mut() = 0;
-    /// cpu.cycle();
-    /// assert_eq!(cpu.sp, 2);
-    /// assert_eq!(cpu.pc, 1);
-    /// assert_eq!(cpu.reg.d, 0xaa);
-    /// assert_eq!(cpu.reg.e, 0xff);
-    /// assert_eq!(*cpu.reg.de(), 0xffaa);
-    /// ```
-    fn pop(&mut self, rp: u8) {
-        let rp = match rp {
-            0x00 => self.reg.bc_mut(),
-            0x01 => self.reg.de_mut(),
-            0x02 => self.reg.hl_mut(),
-            a => panic!("POP called with invalid register pair: {:x}", a),
-        };
-        self.sp -= 2;
-        let tmp = *self.ram.dword(self.sp as usize);
-        *rp = ((tmp & 0xff) << 8) | (tmp >> 8);
-        self.pc += 1;
-    }
-
-    /// Pop PSW from the stack
-    /// When PSW is POP'd, ALL flags are affected.
-    /// see the function [pop](#method.pop) for other registers
-    /// ```rust
-    /// use rust_8080::*;
-    ///
-    /// let mut cpu = Cpu::from_raw(vec![0b11110001, 0x00, 0xff, 0xaa]);
-    /// cpu.pc = 0; // pop the content of sp to 11 (a + flags)
-    /// cpu.sp = 4; // make sp point to 0xff, 0xff
-    /// cpu.reg.a = 0;
-    /// cpu.cycle();
-    /// assert_eq!(cpu.sp, 2);
-    /// assert_eq!(cpu.pc, 1);
-    /// assert_eq!(cpu.reg.a, 0xaa);
-    /// assert_eq!(cpu.flags.sign, true);
-    /// assert_eq!(cpu.flags.zero, false);
-    /// assert_eq!(cpu.flags.parity, true);
-    /// assert_eq!(cpu.flags.carry, false);
-    /// assert_eq!(cpu.flags.aux_carry, false);
-    /// ```
-    fn pop_psw(&mut self) {
-        self.sp -= 1;
-        let res = self.ram[self.sp as usize];
-        self.flags
-            .update((res, false), &[Zero, Sign, Parity, Carry, AuxCarry]);
-        self.pc += 1;
-        self.reg.a = self.ram[self.sp as usize];
-        self.sp -= 1;
-    }
-
     /// Compare register with A
     fn cmp(&mut self, r: usize) {
         let res = self.reg.a.overflowing_sub(self.reg[r]);
@@ -338,29 +215,6 @@ impl Cpu {
         self.pc += 2;
     }
 
-    /// Move immediate to register
-    fn mvi(&mut self, a: usize, val: u8) {
-        let a = match a {
-            0x06 => &mut self.ram[*self.reg.hl() as usize],
-            a => &mut self.reg[a],
-        };
-        *a = val;
-        self.pc += 2;
-    }
-
-    /// Decrement register
-    /// update the flags: Zero, Sign, Parity, AuxiliaryCarry
-    fn dcr(&mut self, r: usize) {
-        let r = match r {
-            0x06 => &mut self.ram[*self.reg.hl() as usize],
-            r => &mut self.reg[r],
-        };
-        let res = r.overflowing_sub(1);
-        *r = res.0;
-        self.flags.update(res, &[Zero, Sign, Parity, AuxCarry]);
-        self.pc += 1;
-    }
-
     /// Increment register
     /// update the flags: Zero, Sign, Parity, AuxiliaryCarry
     fn inr(&mut self, r: usize) {
@@ -372,102 +226,5 @@ impl Cpu {
         *r = res.0;
         self.flags.update(res, &[Zero, Sign, Parity, AuxCarry]);
         self.pc += 1;
-    }
-
-    /// Move register nb a to register nb b
-    fn mov(&mut self, a: usize, b: usize) {
-        let b = match b {
-            0x06 => self.ram[*self.reg.hl() as usize],
-            b => self.reg[b],
-        };
-        let a = match a {
-            0x06 => &mut self.ram[*self.reg.hl() as usize],
-            a => &mut self.reg[a],
-        };
-        *a = b;
-        self.pc += 1;
-    }
-
-    /// Halt processor
-    fn halt(&mut self) {
-        panic!("CPU HALTED");
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_nop() {
-        let mut cpu = Cpu::from_raw(vec![0]);
-        cpu.cycle();
-
-        assert_eq!(cpu.pc, 1);
-    }
-
-    #[test]
-    fn test_mvi() {
-        //                                 MVI  A <- D8
-        let mut cpu = Cpu::from_raw(vec![0b00_111_110, 42]);
-        cpu.mvi(0, 1);
-        assert_eq!(cpu.reg.b, 1);
-        cpu.mvi(1, 2);
-        assert_eq!(cpu.reg.c, 2);
-        cpu.mvi(2, 3);
-        assert_eq!(cpu.reg.d, 3);
-        cpu.mvi(3, 4);
-        assert_eq!(cpu.reg.e, 4);
-        cpu.mvi(4, 5);
-        assert_eq!(cpu.reg.h, 5);
-        cpu.mvi(5, 6);
-        assert_eq!(cpu.reg.l, 6);
-        cpu.mvi(7, 7);
-        assert_eq!(cpu.reg.a, 7);
-
-        cpu.pc = 0;
-        cpu.cycle(); //execute MVI  A <- 42
-        assert_eq!(cpu.reg.a, 42);
-        assert_eq!(cpu.pc, 2);
-    }
-
-    #[test]
-    fn test_mov() {
-        //                                 MOV  A <- D   MOV  M <- D
-        let mut cpu = Cpu::from_raw(vec![0b01_111_010, 0b01_110_010]);
-        cpu.reg.b = 12;
-        cpu.reg.c = 2;
-        cpu.reg.d = 42;
-        cpu.mov(0, 1);
-
-        assert_eq!(cpu.reg.b, 2);
-        assert_eq!(cpu.reg.c, 2);
-
-        cpu.pc = 0;
-        cpu.cycle(); // execute the mov A <- D
-        assert_eq!(cpu.reg.a, 42);
-        assert_eq!(cpu.reg.d, 42);
-
-        *cpu.reg.hl_mut() = 0; // we want to modify the address 0
-        cpu.pc = 1;
-        cpu.cycle(); // execute the mov M <- D
-        assert_eq!(cpu.ram[0], 42);
-
-        assert_eq!(cpu.pc, 2);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_halt() {
-        let mut cpu = Cpu::from_raw(vec![0b01110110]);
-        cpu.cycle();
-    }
-
-    #[test]
-    fn test_dcr() {
-        let mut cpu = Cpu::from_raw(vec![0]);
-        cpu.dcr(0);
-        assert_eq!(cpu.flags.sign, true);
-        assert_eq!(cpu.flags.carry, false);
     }
 }
