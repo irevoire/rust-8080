@@ -1,4 +1,4 @@
-use crate::Error;
+use anyhow::Result;
 use std::io::Read;
 
 pub struct Memory {
@@ -24,7 +24,7 @@ impl Memory {
         Self { vec }
     }
 
-    pub fn from_file_at(file: &str, starting_addr: usize) -> Result<Self, Error> {
+    pub fn from_file_at(file: &str, starting_addr: usize) -> Result<Self> {
         let mut f = std::fs::File::open(file)?;
         let mut buffer = Vec::new();
         f.read_to_end(&mut buffer)?;

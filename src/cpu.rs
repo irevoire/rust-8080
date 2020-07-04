@@ -1,4 +1,5 @@
 use crate::*;
+use anyhow::Result;
 
 pub struct Cpu {
     pub reg: Registers,
@@ -27,7 +28,7 @@ fn addr(opcode: &[u8]) -> usize {
 }
 
 impl Cpu {
-    pub fn from_filename_at(file: &str, starting_addr: usize) -> Result<Self, Error> {
+    pub fn from_filename_at(file: &str, starting_addr: usize) -> Result<Self> {
         Ok(Self {
             reg: Registers::new(),
 

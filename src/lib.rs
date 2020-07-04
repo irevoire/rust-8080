@@ -12,5 +12,3 @@ pub use cpu::Cpu;
 pub use flags::*;
 pub use memory::Memory;
 pub use registers::Registers;
-
-type Error = Box<dyn std::error::Error>;
