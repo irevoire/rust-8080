@@ -9,6 +9,7 @@ mod sphl;
 
 use crate::*;
 use anyhow::Result;
+use Flags::*;
 
 pub struct Cpu {
     pub reg: Registers,
@@ -17,7 +18,6 @@ pub struct Cpu {
     /// program counter
     pub pc: usize,
     pub ram: Memory,
-    pub flags: Flags,
 }
 
 /// merge the byte 2 and 3 of the opcode to create a 16 bits number
@@ -45,7 +45,6 @@ impl Cpu {
             pc: starting_addr,
 
             ram: Memory::from_file_at(file, starting_addr)?,
-            flags: Flags::new(),
         })
     }
 
@@ -57,7 +56,6 @@ impl Cpu {
             pc: 0,
 
             ram: Memory::from_raw(from),
-            flags: Flags::new(),
         }
     }
 
@@ -98,7 +96,6 @@ impl Cpu {
 
         println!("sp: {0} {0:#x}", self.sp);
         println!("registers: {:?}", self.reg);
-        println!("flags: {:?}", self.flags);
     }
 
     /// Unconditionnal jump
@@ -109,14 +106,14 @@ impl Cpu {
     /// Conditionnal jump
     fn cond_jmp(&mut self, cond: u8, addr: usize) {
         let cond = match cond {
-            0b000 => !self.flags.zero,
-            0b001 => self.flags.zero,
-            0b010 => !self.flags.carry,
-            0b011 => self.flags.carry,
-            0b100 => !self.flags.parity,
-            0b101 => self.flags.parity,
-            0b110 => !self.flags.sign,
-            0b111 => self.flags.sign,
+            0b000 => !self.reg.zero(),
+            0b001 => self.reg.zero(),
+            0b010 => !self.reg.carry(),
+            0b011 => self.reg.carry(),
+            0b100 => !self.reg.parity(),
+            0b101 => self.reg.parity(),
+            0b110 => !self.reg.sign(),
+            0b111 => self.reg.sign(),
             c => panic!("cond_jmp called with invalid value: {:b}", c),
         };
         if cond {
@@ -202,16 +199,16 @@ impl Cpu {
     /// Compare register with A
     fn cmp(&mut self, r: usize) {
         let res = self.reg.a.overflowing_sub(self.reg[r]);
-        self.flags
-            .update(res, &[Zero, Sign, Parity, Carry, AuxCarry]);
+        self.reg
+            .update_flags(res, &[Zero, Sign, Parity, Carry, AuxCarry]);
         self.pc += 1;
     }
 
     /// Compare immediate with A
     fn cpi(&mut self, val: u8) {
         let res = self.reg.a.overflowing_sub(val);
-        self.flags
-            .update(res, &[Zero, Sign, Parity, Carry, AuxCarry]);
+        self.reg
+            .update_flags(res, &[Zero, Sign, Parity, Carry, AuxCarry]);
         self.pc += 2;
     }
 
@@ -224,7 +221,7 @@ impl Cpu {
         };
         let res = r.overflowing_add(1);
         *r = res.0;
-        self.flags.update(res, &[Zero, Sign, Parity, AuxCarry]);
+        self.reg.update_flags(res, &[Zero, Sign, Parity, AuxCarry]);
         self.pc += 1;
     }
 }

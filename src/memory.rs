@@ -1,6 +1,7 @@
 use anyhow::Result;
 use std::io::Read;
 
+#[derive(Clone, Debug)]
 pub struct Memory {
     vec: Vec<u8>,
 }

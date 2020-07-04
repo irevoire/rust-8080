@@ -45,17 +45,17 @@ impl Cpu {
     /// assert_eq!(cpu.sp, 2);
     /// assert_eq!(cpu.pc, 1);
     /// assert_eq!(cpu.reg.a, 0xaa);
-    /// assert_eq!(cpu.flags.sign, true);
-    /// assert_eq!(cpu.flags.zero, false);
-    /// assert_eq!(cpu.flags.parity, true);
-    /// assert_eq!(cpu.flags.carry, false);
-    /// assert_eq!(cpu.flags.aux_carry, false);
+    /// assert_eq!(cpu.reg.sign(), true);
+    /// assert_eq!(cpu.reg.zero(), false);
+    /// assert_eq!(cpu.reg.parity(), true);
+    /// assert_eq!(cpu.reg.carry(), false);
+    /// assert_eq!(cpu.reg.half_carry(), false);
     /// ```
     pub fn pop_psw(&mut self) {
         self.sp -= 1;
         let res = self.ram[self.sp as usize];
-        self.flags
-            .update((res, false), &[Zero, Sign, Parity, Carry, AuxCarry]);
+        self.reg
+            .update_flags((res, false), &[Zero, Sign, Parity, Carry, AuxCarry]);
         self.pc += 1;
         self.reg.a = self.ram[self.sp as usize];
         self.sp -= 1;

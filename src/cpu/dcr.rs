@@ -10,7 +10,7 @@ impl Cpu {
         };
         let res = r.overflowing_sub(1);
         *r = res.0;
-        self.flags.update(res, &[Zero, Sign, Parity, AuxCarry]);
+        self.reg.update_flags(res, &[Zero, Sign, Parity, AuxCarry]);
         self.pc += 1;
     }
 }
@@ -23,7 +23,7 @@ mod tests {
     fn test_dcr() {
         let mut cpu = Cpu::from_raw(vec![0]);
         cpu.dcr(0);
-        assert_eq!(cpu.flags.sign, true);
-        assert_eq!(cpu.flags.carry, false);
+        assert_eq!(cpu.reg.sign(), true);
+        assert_eq!(cpu.reg.carry(), false);
     }
 }

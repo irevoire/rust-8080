@@ -3,12 +3,10 @@
 
 mod cpu;
 pub mod decompiler;
-mod flags;
 mod memory;
 mod registers;
 
 use bitmatch::bitmatch;
 pub use cpu::Cpu;
-pub use flags::*;
 pub use memory::Memory;
-pub use registers::Registers;
+pub use registers::*;
