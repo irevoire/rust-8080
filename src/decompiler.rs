@@ -15,6 +15,7 @@ pub fn instr(opcode: &[u8]) -> String {
         "1111_1110" => format!("CPI\t{:#04x}", opcode[1]),
         "00rr_r110" => format!("MVI\t{}\t{:#04x}", reg(r), opcode[1]),
         // register pair
+        "11111001" => format!("SPHL"),
         "00101010 " => format!("LHLD"),
         "00rr_0001" => format!("LXI\t{}\t{}", regpair(r), d16(opcode)),
         "00rr_1010" => format!("LDAX\t{}", regpair(r)),

@@ -14,13 +14,13 @@ use registers::Registers;
 type Error = Box<dyn std::error::Error>;
 
 pub struct Cpu {
-    reg: Registers,
+    pub reg: Registers,
     /// stack pointer
-    sp: u16,
+    pub sp: u16,
     /// program counter
-    pc: usize,
-    ram: Memory,
-    flags: Flags,
+    pub pc: usize,
+    pub ram: Memory,
+    pub flags: Flags,
 }
 
 /// merge the byte 2 and 3 of the opcode to create a 16 bits number
@@ -83,6 +83,7 @@ impl Cpu {
             "1111_1110" => self.cpi(opcode[1]),
             "00aa_a110" => self.mvi(a.into(), opcode[1]),
             // register pair
+            "11111001" => self.sphl(),
             "00101010 " => self.lhld(d16(opcode)),
             "00rr_0001" => self.lxi(r, d16(opcode)),
             "00rr_1010" => self.ldax(r),
@@ -145,9 +146,25 @@ impl Cpu {
         self.sp -= 2;
     }
 
+    /// Set SP to content of H:L
+    /// ```rust
+    /// use rust_8080::*;
+    ///
+    /// let mut cpu = Cpu::from_bytes(vec![0b11111001]);
+    /// cpu.pc = 0;
+    /// cpu.sp = 0;
+    /// *cpu.reg.hl_mut() = 42;
+    /// cpu.cycle();
+    /// assert_eq!(cpu.sp, 42);
+    /// assert_eq!(cpu.pc, 1);
+    /// ```
+    fn sphl(&mut self) {
+        self.sp = *self.reg.hl();
+        self.pc += 1;
+    }
+
     /// Load H:L from memory
     fn lhld(&mut self, a: u16) {
-        println!("looking at address {}", a);
         let dword = *self.ram.dword(a as usize);
         *self.reg.hl_mut() = (dword << 8) | (dword >> 8);
         self.pc += 3;
