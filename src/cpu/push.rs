@@ -25,7 +25,7 @@ impl Cpu {
             a => panic!("PUSH called with invalid register pair: {:x}", a),
         };
         self.sp += 2;
-        *self.ram.dword_mut(self.sp as usize) = rp;
+        self.internal_push(rp);
         self.pc += 1;
     }
 
@@ -46,7 +46,7 @@ impl Cpu {
     /// ```
     pub fn push_psw(&mut self) {
         self.sp += 2;
-        *self.ram.dword_mut(self.sp as usize) = self.reg.psw();
+        self.internal_push(self.reg.psw());
         self.pc += 1;
     }
 }

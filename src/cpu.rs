@@ -98,6 +98,18 @@ impl Cpu {
         println!("registers: {:?}", self.reg);
     }
 
+    /// helper to push something on the stack
+    fn internal_push(&mut self, value: u16) {
+        *self.ram.dword_mut(self.sp as usize) = value;
+    }
+
+    /// helper to pop something from the stack
+    fn internal_pop(&mut self) -> u16 {
+        *self.ram.dword(self.sp as usize)
+    }
+
+    // ============= INSTRUCTIONS ==============
+
     /// Unconditionnal jump
     fn jmp(&mut self, addr: usize) {
         self.pc = addr;
@@ -126,16 +138,14 @@ impl Cpu {
     /// Unconditionnal subroutine call
     fn call(&mut self, addr: usize) {
         let ret_addr = self.pc + 3;
-        let stack = self.ram.dword_mut((self.sp) as usize);
-        *stack = ret_addr as u16;
+        self.internal_push(ret_addr as u16);
         self.sp += 2;
         self.pc = addr;
     }
 
     /// Return from a subroutine call
     fn ret(&mut self) {
-        let ret_addr = usize::from_le(*self.ram.dword(self.sp as usize) as usize);
-        self.pc = ret_addr;
+        self.pc = self.internal_pop() as usize;
         self.sp -= 2;
     }
 

@@ -19,13 +19,14 @@ impl Cpu {
     /// assert_eq!(cpu.reg.de(), 0xaaff);
     /// ```
     pub fn pop(&mut self, rp: u8) {
+        let tmp = self.internal_pop();
+
         let rp = match rp {
             0x00 => self.reg.bc_mut(),
             0x01 => self.reg.de_mut(),
             0x02 => self.reg.hl_mut(),
             a => panic!("POP called with invalid register pair: {:x}", a),
         };
-        let tmp = *self.ram.dword(self.sp as usize);
         self.sp -= 2;
         *rp = tmp;
         self.pc += 1;
@@ -52,7 +53,8 @@ impl Cpu {
     /// assert_eq!(cpu.reg.half_carry(), true);
     /// ```
     pub fn pop_psw(&mut self) {
-        let tmp = *self.ram.dword(self.sp as usize);
+        let tmp = self.internal_pop();
+
         self.sp -= 2;
         self.reg.set_psw(tmp);
         self.pc += 1;
