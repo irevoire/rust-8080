@@ -40,14 +40,14 @@ impl Cpu {
         })
     }
 
-    pub fn from_bytes(from: Vec<u8>) -> Self {
+    pub fn from_raw(from: Vec<u8>) -> Self {
         Self {
             reg: Registers::new(),
 
             sp: 0,
             pc: 0,
 
-            ram: Memory::from(from),
+            ram: Memory::from_raw(from),
             flags: Flags::new(),
         }
     }
@@ -141,7 +141,7 @@ impl Cpu {
     /// ```rust
     /// use rust_8080::*;
     ///
-    /// let mut cpu = Cpu::from_bytes(vec![0b11111001]);
+    /// let mut cpu = Cpu::from_raw(vec![0b11111001]);
     /// cpu.pc = 0;
     /// cpu.sp = 0;
     /// *cpu.reg.hl_mut() = 42;
@@ -217,7 +217,7 @@ impl Cpu {
     /// ```rust
     /// use rust_8080::*;
     ///
-    /// let mut cpu = Cpu::from_bytes(vec![0b11010101, 0x00, 0xff, 0xaa]);
+    /// let mut cpu = Cpu::from_raw(vec![0b11010101, 0x00, 0xff, 0xaa]);
     /// cpu.pc = 0; // push the content of 01 (de) to sp
     /// cpu.sp = 0; // make sp point to 0xff, 0xaa
     /// *cpu.reg.de_mut() = 0x9911;
@@ -244,7 +244,7 @@ impl Cpu {
     /// ```rust
     /// use rust_8080::*;
     ///
-    /// let mut cpu = Cpu::from_bytes(vec![0b11110101, 0x00, 0xff, 0xaa]);
+    /// let mut cpu = Cpu::from_raw(vec![0b11110101, 0x00, 0xff, 0xaa]);
     /// cpu.pc = 0; // push the content of 01 (de) to sp
     /// cpu.sp = 1; // make sp point to 0xff, 0xaa
     /// cpu.reg.a = 0x99;
@@ -268,7 +268,7 @@ impl Cpu {
     /// ```rust
     /// use rust_8080::*;
     ///
-    /// let mut cpu = Cpu::from_bytes(vec![0b11010001, 0x00, 0xff, 0xaa]);
+    /// let mut cpu = Cpu::from_raw(vec![0b11010001, 0x00, 0xff, 0xaa]);
     /// cpu.pc = 0; // pop the content of sp to 01 (de)
     /// cpu.sp = 4; // make sp point to 0xff, 0xff
     /// *cpu.reg.de_mut() = 0;
@@ -298,7 +298,7 @@ impl Cpu {
     /// ```rust
     /// use rust_8080::*;
     ///
-    /// let mut cpu = Cpu::from_bytes(vec![0b11110001, 0x00, 0xff, 0xaa]);
+    /// let mut cpu = Cpu::from_raw(vec![0b11110001, 0x00, 0xff, 0xaa]);
     /// cpu.pc = 0; // pop the content of sp to 11 (a + flags)
     /// cpu.sp = 4; // make sp point to 0xff, 0xff
     /// cpu.reg.a = 0;
@@ -400,7 +400,7 @@ mod tests {
 
     #[test]
     fn test_nop() {
-        let mut cpu = Cpu::from_bytes(vec![0]);
+        let mut cpu = Cpu::from_raw(vec![0]);
         cpu.cycle();
 
         assert_eq!(cpu.pc, 1);
@@ -409,7 +409,7 @@ mod tests {
     #[test]
     fn test_mvi() {
         //                                 MVI  A <- D8
-        let mut cpu = Cpu::from_bytes(vec![0b00_111_110, 42]);
+        let mut cpu = Cpu::from_raw(vec![0b00_111_110, 42]);
         cpu.mvi(0, 1);
         assert_eq!(cpu.reg.b, 1);
         cpu.mvi(1, 2);
@@ -434,7 +434,7 @@ mod tests {
     #[test]
     fn test_mov() {
         //                                 MOV  A <- D   MOV  M <- D
-        let mut cpu = Cpu::from_bytes(vec![0b01_111_010, 0b01_110_010]);
+        let mut cpu = Cpu::from_raw(vec![0b01_111_010, 0b01_110_010]);
         cpu.reg.b = 12;
         cpu.reg.c = 2;
         cpu.reg.d = 42;
@@ -459,13 +459,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_halt() {
-        let mut cpu = Cpu::from_bytes(vec![0b01110110]);
+        let mut cpu = Cpu::from_raw(vec![0b01110110]);
         cpu.cycle();
     }
 
     #[test]
     fn test_dcr() {
-        let mut cpu = Cpu::from_bytes(vec![0]);
+        let mut cpu = Cpu::from_raw(vec![0]);
         cpu.dcr(0);
         assert_eq!(cpu.flags.sign, true);
         assert_eq!(cpu.flags.carry, false);

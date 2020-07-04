@@ -20,7 +20,7 @@ impl<T: std::slice::SliceIndex<[u8]>> std::ops::IndexMut<T> for Memory {
 }
 
 impl Memory {
-    pub fn from(vec: Vec<u8>) -> Self {
+    pub fn from_raw(vec: Vec<u8>) -> Self {
         Self { vec }
     }
 
