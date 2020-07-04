@@ -43,10 +43,10 @@ impl Registers {
         unsafe { *std::mem::transmute::<&u8, &u16>(&self.h) }
     }
 
-    /// give access to a merge of the registers flags and a
-    pub fn psw_mut(&mut self) -> &mut u16 {
+    /// set the merge of the registers flags and a
+    pub fn set_psw(&mut self, value: u16) {
+        *unsafe { std::mem::transmute::<&mut u8, &mut u16>(&mut self.flags) } = value;
         self.fix_flags();
-        unsafe { std::mem::transmute::<&mut u8, &mut u16>(&mut self.flags) }
     }
 
     /// give access to a merge of the register b and c
@@ -116,6 +116,6 @@ mod tests {
         let c = 0xc0; // 0b1100_0000
         registers.b = b;
         registers.c = c;
-        assert_eq!(*registers.bc(), 0xC003);
+        assert_eq!(registers.bc(), 0xC003);
     }
 }

@@ -9,14 +9,14 @@ impl Cpu {
     ///
     /// let mut cpu = Cpu::from_raw(vec![0b11010001, 0x00, 0xff, 0xaa]);
     /// cpu.pc = 0; // pop the content of sp to 01 (de)
-    /// cpu.sp = 4; // make sp point to 0xff, 0xff
+    /// cpu.sp = 2; // make sp point to 0xff, 0xff
     /// *cpu.reg.de_mut() = 0;
     /// cpu.cycle();
-    /// assert_eq!(cpu.sp, 2);
+    /// assert_eq!(cpu.sp, 0);
     /// assert_eq!(cpu.pc, 1);
-    /// assert_eq!(cpu.reg.d, 0xaa);
-    /// assert_eq!(cpu.reg.e, 0xff);
-    /// assert_eq!(cpu.reg.de(), 0xffaa);
+    /// assert_eq!(cpu.reg.d, 0xff);
+    /// assert_eq!(cpu.reg.e, 0xaa);
+    /// assert_eq!(cpu.reg.de(), 0xaaff);
     /// ```
     pub fn pop(&mut self, rp: u8) {
         let rp = match rp {
@@ -25,9 +25,9 @@ impl Cpu {
             0x02 => self.reg.hl_mut(),
             a => panic!("POP called with invalid register pair: {:x}", a),
         };
-        self.sp -= 2;
         let tmp = *self.ram.dword(self.sp as usize);
-        *rp = ((tmp & 0xff) << 8) | (tmp >> 8);
+        self.sp -= 2;
+        *rp = tmp;
         self.pc += 1;
     }
 
@@ -39,25 +39,46 @@ impl Cpu {
     ///
     /// let mut cpu = Cpu::from_raw(vec![0b11110001, 0x00, 0xff, 0xaa]);
     /// cpu.pc = 0; // pop the content of sp to 11 (a + flags)
-    /// cpu.sp = 4; // make sp point to 0xff, 0xff
+    /// cpu.sp = 2; // make sp point to 0xff, 0xff
     /// cpu.reg.a = 0;
     /// cpu.cycle();
-    /// assert_eq!(cpu.sp, 2);
+    /// assert_eq!(cpu.sp, 0);
     /// assert_eq!(cpu.pc, 1);
     /// assert_eq!(cpu.reg.a, 0xaa);
     /// assert_eq!(cpu.reg.sign(), true);
-    /// assert_eq!(cpu.reg.zero(), false);
+    /// assert_eq!(cpu.reg.zero(), true);
     /// assert_eq!(cpu.reg.parity(), true);
-    /// assert_eq!(cpu.reg.carry(), false);
-    /// assert_eq!(cpu.reg.half_carry(), false);
+    /// assert_eq!(cpu.reg.carry(), true);
+    /// assert_eq!(cpu.reg.half_carry(), true);
     /// ```
     pub fn pop_psw(&mut self) {
-        self.sp -= 1;
-        let res = self.ram[self.sp as usize];
-        self.reg
-            .update_flags((res, false), &[Zero, Sign, Parity, Carry, AuxCarry]);
+        let tmp = *self.ram.dword(self.sp as usize);
+        self.sp -= 2;
+        self.reg.set_psw(tmp);
         self.pc += 1;
-        self.reg.a = self.ram[self.sp as usize];
-        self.sp -= 1;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_push_pop() {
+        let mut cpu = Cpu::from_raw(vec![0x00, 0x01, 0x02, 0x03]);
+        cpu.pc = 0;
+        cpu.sp = 0; // make sp point to 0x00, 0x01
+        *cpu.reg.bc_mut() = 0x4235;
+        cpu.push(0x00); // bc
+        assert_eq!(cpu.sp, 2);
+        assert_eq!(cpu.pc, 1);
+        assert_eq!(cpu.reg.bc(), 0x4235);
+        assert_eq!(cpu.reg.de(), 0x0000);
+
+        cpu.pop(0x01); // de
+        assert_eq!(cpu.sp, 0);
+        assert_eq!(cpu.pc, 2);
+        assert_eq!(cpu.reg.bc(), 0x4235);
+        assert_eq!(cpu.reg.de(), 0x4235);
     }
 }

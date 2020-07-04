@@ -22,7 +22,7 @@ impl Cpu {
             0x00 => self.reg.bc(),
             0x01 => self.reg.de(),
             0x02 => self.reg.hl(),
-            a => panic!("POP called with invalid register pair: {:x}", a),
+            a => panic!("PUSH called with invalid register pair: {:x}", a),
         };
         self.sp += 2;
         *self.ram.dword_mut(self.sp as usize) = rp;
