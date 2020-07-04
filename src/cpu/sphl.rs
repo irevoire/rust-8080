@@ -14,7 +14,7 @@ impl Cpu {
     /// assert_eq!(cpu.pc, 1);
     /// ```
     pub fn sphl(&mut self) {
-        self.sp = *self.reg.hl();
+        self.sp = self.reg.hl();
         self.pc += 1;
     }
 }

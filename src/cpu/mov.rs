@@ -4,11 +4,11 @@ impl Cpu {
     /// Move register to register
     pub fn mov(&mut self, a: usize, b: usize) {
         let b = match b {
-            0x06 => self.ram[*self.reg.hl() as usize],
+            0x06 => self.ram[self.reg.hl() as usize],
             b => self.reg[b],
         };
         let a = match a {
-            0x06 => &mut self.ram[*self.reg.hl() as usize],
+            0x06 => &mut self.ram[self.reg.hl() as usize],
             a => &mut self.reg[a],
         };
         *a = b;

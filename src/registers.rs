@@ -17,18 +17,18 @@ impl Registers {
     }
 
     /// give access to a merge of the register b and c
-    pub fn bc(&self) -> &u16 {
-        unsafe { std::mem::transmute::<&u8, &u16>(&self.b) }
+    pub fn bc(&self) -> u16 {
+        unsafe { *std::mem::transmute::<&u8, &u16>(&self.b) }
     }
 
     /// give access to a merge of the register d and e
-    pub fn de(&self) -> &u16 {
-        unsafe { std::mem::transmute::<&u8, &u16>(&self.d) }
+    pub fn de(&self) -> u16 {
+        unsafe { *std::mem::transmute::<&u8, &u16>(&self.d) }
     }
 
     /// give access to a merge of the register h and l
-    pub fn hl(&self) -> &u16 {
-        unsafe { std::mem::transmute::<&u8, &u16>(&self.h) }
+    pub fn hl(&self) -> u16 {
+        unsafe { *std::mem::transmute::<&u8, &u16>(&self.h) }
     }
 
     /// give access to a merge of the register b and c

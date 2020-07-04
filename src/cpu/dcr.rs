@@ -5,7 +5,7 @@ impl Cpu {
     /// update the flags: Zero, Sign, Parity, AuxiliaryCarry
     pub fn dcr(&mut self, r: usize) {
         let r = match r {
-            0x06 => &mut self.ram[*self.reg.hl() as usize],
+            0x06 => &mut self.ram[self.reg.hl() as usize],
             r => &mut self.reg[r],
         };
         let res = r.overflowing_sub(1);

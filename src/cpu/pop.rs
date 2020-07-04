@@ -16,7 +16,7 @@ impl Cpu {
     /// assert_eq!(cpu.pc, 1);
     /// assert_eq!(cpu.reg.d, 0xaa);
     /// assert_eq!(cpu.reg.e, 0xff);
-    /// assert_eq!(*cpu.reg.de(), 0xffaa);
+    /// assert_eq!(cpu.reg.de(), 0xffaa);
     /// ```
     pub fn pop(&mut self, rp: u8) {
         let rp = match rp {

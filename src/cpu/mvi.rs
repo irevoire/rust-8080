@@ -4,7 +4,7 @@ impl Cpu {
     /// Move immediate to register
     pub fn mvi(&mut self, a: usize, val: u8) {
         let a = match a {
-            0x06 => &mut self.ram[*self.reg.hl() as usize],
+            0x06 => &mut self.ram[self.reg.hl() as usize],
             a => &mut self.reg[a],
         };
         *a = val;

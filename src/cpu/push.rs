@@ -25,7 +25,7 @@ impl Cpu {
             a => panic!("POP called with invalid register pair: {:x}", a),
         };
         self.sp += 2;
-        *self.ram.dword_mut(self.sp as usize) = *rp;
+        *self.ram.dword_mut(self.sp as usize) = rp;
         self.pc += 1;
     }
 

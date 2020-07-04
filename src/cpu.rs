@@ -152,8 +152,8 @@ impl Cpu {
     /// Load indirect through BC or DE
     fn ldax(&mut self, rp: u8) {
         self.reg.a = match rp {
-            0x00 => self.ram[*self.reg.bc() as usize],
-            0x01 => self.ram[*self.reg.de() as usize],
+            0x00 => self.ram[self.reg.bc() as usize],
+            0x01 => self.ram[self.reg.de() as usize],
             a => panic!("LDAX called with invalid register pair: {:x}", a),
         };
         self.pc += 1;
@@ -219,7 +219,7 @@ impl Cpu {
     /// update the flags: Zero, Sign, Parity, AuxiliaryCarry
     fn inr(&mut self, r: usize) {
         let r = match r {
-            0x06 => &mut self.ram[*self.reg.hl() as usize],
+            0x06 => &mut self.ram[self.reg.hl() as usize],
             r => &mut self.reg[r],
         };
         let res = r.overflowing_add(1);
