@@ -1,15 +1,15 @@
 #![allow(mutable_borrow_reservation_conflict)]
 #![allow(dead_code)]
 
-mod decompiler;
+pub mod decompiler;
 mod flags;
 mod memory;
 mod registers;
 
 use bitmatch::bitmatch;
-use flags::*;
-use memory::Memory;
-use registers::Registers;
+pub use flags::*;
+pub use memory::Memory;
+pub use registers::Registers;
 
 type Error = Box<dyn std::error::Error>;
 
@@ -89,6 +89,7 @@ impl Cpu {
             "00rr_1010" => self.ldax(r),
             "00rr_1011" => self.dcx(r),
             "00rr_0011" => self.inx(r),
+            "1111_0001" => self.pop_psw(),
             "11rr_0001" => self.pop(r),
             // other
             "0111_0110" => self.halt(), // overlap with the mov instruction
@@ -220,21 +221,24 @@ impl Cpu {
         self.pc += 1;
     }
 
-    /// Pop  register pair from the stack
-    /// *2 = RP=11 refers to PSW for PUSH/POP (cannot push/pop SP).
-    /// When PSW is POP'd, ALL flags are affected.
+    /// Pop register pair from the stack
+    /// RP=11 refers to PSW for POP (cannot pop SP).
+    /// see [pop_psw](#method.pop_psw)
+    /// ```rust
+    /// use rust_8080::*;
+    ///
+    /// let mut cpu = Cpu::from_bytes(vec![0b11010001, 0x00, 0xff, 0xaa]);
+    /// cpu.pc = 0; // pop the content of sp to 01 (de)
+    /// cpu.sp = 4; // make sp point to 0xff, 0xff
+    /// *cpu.reg.de_mut() = 0;
+    /// cpu.cycle();
+    /// assert_eq!(cpu.sp, 2);
+    /// assert_eq!(cpu.pc, 1);
+    /// assert_eq!(cpu.reg.d, 0xaa);
+    /// assert_eq!(cpu.reg.e, 0xff);
+    /// assert_eq!(*cpu.reg.de(), 0xffaa);
+    /// ```
     fn pop(&mut self, rp: u8) {
-        // RP=11
-        if rp == 0x03 {
-            let res = self.ram[self.sp as usize];
-            self.sp += 1;
-            self.flags
-                .update((res, false), &[Zero, Sign, Parity, Carry, AuxCarry]);
-            self.pc += 1;
-            self.reg.a = self.ram[self.sp as usize];
-            self.sp += 1;
-            return;
-        }
         let rp = match rp {
             0x00 => self.reg.bc_mut(),
             0x01 => self.reg.de_mut(),
@@ -245,6 +249,36 @@ impl Cpu {
         let tmp = *self.ram.dword(self.sp as usize);
         *rp = ((tmp & 0xff) << 8) | (tmp >> 8);
         self.pc += 1;
+    }
+
+    /// Pop PSW from the stack
+    /// When PSW is POP'd, ALL flags are affected.
+    /// see the function [pop](#method.pop) for others registers
+    /// ```rust
+    /// use rust_8080::*;
+    ///
+    /// let mut cpu = Cpu::from_bytes(vec![0b11110001, 0x00, 0xff, 0xaa]);
+    /// cpu.pc = 0; // pop the content of sp to 11 (a + flags)
+    /// cpu.sp = 4; // make sp point to 0xff, 0xff
+    /// cpu.reg.a = 0;
+    /// cpu.cycle();
+    /// assert_eq!(cpu.sp, 2);
+    /// assert_eq!(cpu.pc, 1);
+    /// assert_eq!(cpu.reg.a, 0xaa);
+    /// assert_eq!(cpu.flags.sign, true);
+    /// assert_eq!(cpu.flags.zero, false);
+    /// assert_eq!(cpu.flags.parity, true);
+    /// assert_eq!(cpu.flags.carry, false);
+    /// assert_eq!(cpu.flags.aux_carry, false);
+    /// ```
+    fn pop_psw(&mut self) {
+        self.sp -= 1;
+        let res = self.ram[self.sp as usize];
+        self.flags
+            .update((res, false), &[Zero, Sign, Parity, Carry, AuxCarry]);
+        self.pc += 1;
+        self.reg.a = self.ram[self.sp as usize];
+        self.sp -= 1;
     }
 
     /// Compare register with A
