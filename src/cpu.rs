@@ -126,7 +126,7 @@ impl Cpu {
 
     /// helper to push something on the stack
     fn internal_push(&mut self, value: u16) {
-        *self.ram.dword_mut(self.sp as usize) = value;
+        self.ram.dword_set(self.sp, value);
     }
 
     /// helper to pop something from the stack
@@ -211,8 +211,7 @@ impl Cpu {
     /// Store H:L to memory
     /// Write the content of hl to mem[d16]
     fn shld(&mut self, d16: u16) {
-        let dword = self.ram.dword_mut(d16 as usize);
-        *dword = self.reg.hl();
+        self.ram.dword_set(d16, self.reg.hl());
         self.pc += 3;
     }
 

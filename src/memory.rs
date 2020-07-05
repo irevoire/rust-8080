@@ -36,11 +36,13 @@ impl Memory {
         Ok(Self { vec })
     }
 
-    pub fn dword(&self, idx: usize) -> u16 {
-        *unsafe { std::mem::transmute::<&u8, &u16>(&self.vec[idx]) }
+    pub fn dword(&self, idx: impl Into<usize>) -> u16 {
+        let dword = *unsafe { std::mem::transmute::<&u8, &u16>(&self.vec[idx.into()]) };
+        u16::from_be(dword)
     }
 
-    pub fn dword_mut(&mut self, idx: usize) -> &mut u16 {
-        unsafe { std::mem::transmute::<&mut u8, &mut u16>(&mut self.vec[idx]) }
+    pub fn dword_set(&mut self, idx: impl Into<usize>, value: u16) {
+        let dword = unsafe { std::mem::transmute::<&mut u8, &mut u16>(&mut self.vec[idx.into()]) };
+        *dword = u16::to_be(value);
     }
 }
