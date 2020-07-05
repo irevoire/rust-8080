@@ -91,8 +91,8 @@ impl Cpu {
             "1100_1101" => self.call(addr(opcode)),
             "1100_1001" => self.ret(),
             // ports
-            "11011011 " => self.r#in(p(opcode)),
-            "11010011" => self.out(p(opcode)),
+            "1101_1011 " => self.r#in(p(opcode)),
+            "1101_0011" => self.out(p(opcode)),
             // register
             "00rr_r101" => self.dcr(r.into()),
             "00rr_r100" => self.inr(r.into()),
@@ -100,7 +100,7 @@ impl Cpu {
             "1111_1110" => self.cpi(opcode[1]),
             "00aa_a110" => self.mvi(a.into(), opcode[1]),
             // register pair
-            "11111001" => self.sphl(),
+            "1111_1001" => self.sphl(),
             "00rr_0001" => self.lxi(r, d16(opcode)),
             "0011_1010" => self.lda(d16(opcode)),
             "0011_0010" => self.sta(d16(opcode)),
@@ -131,7 +131,7 @@ impl Cpu {
 
     /// helper to pop something from the stack
     fn internal_pop(&mut self) -> u16 {
-        *self.ram.dword(self.sp as usize)
+        self.ram.dword(self.sp as usize)
     }
 
     // ============= INSTRUCTIONS ==============
@@ -204,7 +204,7 @@ impl Cpu {
     /// Load H:L from memory
     /// Write the content of mem[d16] to hl
     fn lhld(&mut self, d16: u16) {
-        *self.reg.hl_mut() = *self.ram.dword(d16 as usize);
+        *self.reg.hl_mut() = self.ram.dword(d16 as usize);
         self.pc += 3;
     }
 

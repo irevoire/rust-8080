@@ -36,8 +36,8 @@ impl Memory {
         Ok(Self { vec })
     }
 
-    pub fn dword(&self, idx: usize) -> &u16 {
-        unsafe { std::mem::transmute::<&u8, &u16>(&self.vec[idx]) }
+    pub fn dword(&self, idx: usize) -> u16 {
+        *unsafe { std::mem::transmute::<&u8, &u16>(&self.vec[idx]) }
     }
 
     pub fn dword_mut(&mut self, idx: usize) -> &mut u16 {
