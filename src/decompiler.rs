@@ -9,6 +9,9 @@ pub fn instr(opcode: &[u8]) -> String {
         "11cc_c010" => format!("{}\t{}", cond_jmp(c), addr(opcode)),
         "1100_1101" => format!("CALL\t{}", addr(opcode)),
         "1100_1001" => "RET".to_string(),
+        // ports
+        "11011011" => format!("IN\t{}", opcode[1]),
+        "11010011" => format!("OUT\t{}", opcode[1]),
         // register
         "00rr_r101" => format!("DCR\t{}", reg(r)),
         "00rr_r100" => format!("INR\t{}", reg(r)),

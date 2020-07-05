@@ -1,9 +1,11 @@
 #![allow(non_snake_case)]
 
+mod init;
+
 #[test]
 fn main() {
     let file = "tests/bin/8080PRE.COM";
-    let mut cpu = rust_8080::Cpu::from_filename_at(&file, 0x100).unwrap();
+    let mut cpu = init::cpu(file);
 
     let mut cpt = 0;
 

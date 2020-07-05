@@ -1,11 +1,17 @@
 #![allow(non_snake_case)]
 
+mod init;
+
 #[test]
 fn main() {
     let file = "tests/bin/8080EXER.COM";
-    let mut cpu = rust_8080::Cpu::from_filename_at(&file, 0x100).unwrap();
+    let mut cpu = init::cpu(file);
+    let mut instructions = 0;
 
-    loop {
+    while !unsafe { init::FINISHED } {
+        instructions += 1;
         cpu.cycle();
     }
+    println!("in {}", instructions);
+    panic!("NO!");
 }

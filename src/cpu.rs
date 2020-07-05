@@ -14,10 +14,10 @@ use Flags::*;
 pub struct Cpu {
     /// User function to read from port.
     /// Called when the IN instruction appear
-    pub port_in: Option<Box<dyn Fn(&mut Cpu, u8) -> u8>>,
+    pub port_in: Option<Box<dyn Fn(&Cpu, u8) -> u8>>,
     /// User function to write to port.
     /// Called when the OUT instruction appear
-    pub port_out: Option<Box<dyn Fn(&mut Cpu, u8, u8)>>,
+    pub port_out: Option<Box<dyn Fn(&Cpu, u8, u8)>>,
 
     pub reg: Registers,
     /// stack pointer
@@ -25,6 +25,14 @@ pub struct Cpu {
     /// program counter
     pub pc: usize,
     pub ram: Memory,
+}
+
+/// get the 8 bit port address
+fn p(opcode: &[u8]) -> u8 {
+    if opcode.len() < 2 {
+        panic!("Malformed opcode");
+    }
+    opcode[1]
 }
 
 /// merge the byte 2 and 3 of the opcode to create a 16 bits number
@@ -82,6 +90,9 @@ impl Cpu {
             "11cc_c010" => self.cond_jmp(c, addr(opcode)),
             "1100_1101" => self.call(addr(opcode)),
             "1100_1001" => self.ret(),
+            // ports
+            "11011011 " => self.r#in(p(opcode)),
+            "11010011" => self.out(p(opcode)),
             // register
             "00rr_r101" => self.dcr(r.into()),
             "00rr_r100" => self.inr(r.into()),
@@ -144,6 +155,18 @@ impl Cpu {
         } else {
             self.pc += 2;
         }
+    }
+
+    /// Read input port into A
+    fn r#in(&mut self, pa: u8) {
+        self.reg.a = self.port_in.as_ref().unwrap()(self, pa);
+        self.pc += 2;
+    }
+
+    /// Write A to output port
+    fn out(&mut self, pa: u8) {
+        self.port_out.as_ref().unwrap()(self, pa, self.reg.a);
+        self.pc += 2;
     }
 
     /// Unconditionnal subroutine call
