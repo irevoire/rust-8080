@@ -101,9 +101,13 @@ impl Cpu {
             "00aa_a110" => self.mvi(a.into(), opcode[1]),
             // register pair
             "11111001" => self.sphl(),
-            "00101010 " => self.lhld(d16(opcode)),
             "00rr_0001" => self.lxi(r, d16(opcode)),
+            "0011_1010" => self.lda(d16(opcode)),
+            "0011_0010" => self.sta(d16(opcode)),
+            "0010_1010" => self.lhld(d16(opcode)),
+            "0010_0010" => self.shld(d16(opcode)),
             "00rr_1010" => self.ldax(r),
+            "00rr_0010" => self.stax(r),
             "00rr_1011" => self.dcx(r),
             "00rr_0011" => self.inx(r),
             "1111_0001" => self.pop_psw(),
@@ -183,10 +187,32 @@ impl Cpu {
         self.sp -= 2;
     }
 
+    /// Load A from memory
+    /// Write the content of mem[d16] to A
+    fn lda(&mut self, d16: u16) {
+        self.ram[d16 as usize] = self.reg.a;
+        self.pc += 3;
+    }
+
+    /// Store A to memory
+    /// Write the content of A to mem[d16]
+    fn sta(&mut self, d16: u16) {
+        self.ram[d16 as usize] = self.reg.a;
+        self.pc += 3;
+    }
+
     /// Load H:L from memory
-    fn lhld(&mut self, a: u16) {
-        let dword = *self.ram.dword(a as usize);
-        *self.reg.hl_mut() = (dword << 8) | (dword >> 8);
+    /// Write the content of mem[d16] to hl
+    fn lhld(&mut self, d16: u16) {
+        *self.reg.hl_mut() = *self.ram.dword(d16 as usize);
+        self.pc += 3;
+    }
+
+    /// Store H:L to memory
+    /// Write the content of hl to mem[d16]
+    fn shld(&mut self, d16: u16) {
+        let dword = self.ram.dword_mut(d16 as usize);
+        *dword = self.reg.hl();
         self.pc += 3;
     }
 
@@ -195,6 +221,16 @@ impl Cpu {
         self.reg.a = match rp {
             0x00 => self.ram[self.reg.bc() as usize],
             0x01 => self.ram[self.reg.de() as usize],
+            a => panic!("LDAX called with invalid register pair: {:x}", a),
+        };
+        self.pc += 1;
+    }
+
+    /// Store indirect through BC or DE
+    fn stax(&mut self, rp: u8) {
+        match rp {
+            0x00 => self.ram[self.reg.bc() as usize] = self.reg.a,
+            0x01 => self.ram[self.reg.de() as usize] = self.reg.a,
             a => panic!("LDAX called with invalid register pair: {:x}", a),
         };
         self.pc += 1;
