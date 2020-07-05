@@ -8,9 +8,10 @@ impl Cpu {
     /// let mut cpu = Cpu::from_raw(vec![0b11111001]);
     /// cpu.pc = 0;
     /// cpu.sp = 0;
-    /// *cpu.reg.hl_mut() = 42;
+    /// cpu.reg.h = 0xc9;
+    /// cpu.reg.l = 0;
     /// cpu.cycle();
-    /// assert_eq!(cpu.sp, 42);
+    /// assert_eq!(cpu.sp, 0xc900);
     /// assert_eq!(cpu.pc, 1);
     /// ```
     pub fn sphl(&mut self) {

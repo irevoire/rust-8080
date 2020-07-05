@@ -10,12 +10,12 @@ impl Cpu {
     /// let mut cpu = Cpu::from_raw(vec![0b11010101, 0x00, 0xff, 0xaa]);
     /// cpu.pc = 0; // push the content of 01 (de) to sp
     /// cpu.sp = 0; // make sp point to 0xff, 0xaa
-    /// *cpu.reg.de_mut() = 0x9911;
+    /// cpu.reg.de_set(0x9911);
     /// cpu.cycle();
     /// assert_eq!(cpu.sp, 2);
     /// assert_eq!(cpu.pc, 1);
-    /// assert_eq!(cpu.ram[2], 0x11);
-    /// assert_eq!(cpu.ram[3], 0x99);
+    /// assert_eq!(cpu.ram[2], 0x99);
+    /// assert_eq!(cpu.ram[3], 0x11);
     /// ```
     pub fn push(&mut self, rp: u8) {
         let rp = match rp {
@@ -41,8 +41,8 @@ impl Cpu {
     /// cpu.cycle();
     /// assert_eq!(cpu.sp, 2);
     /// assert_eq!(cpu.pc, 1);
-    /// assert_eq!(cpu.ram[2], 0x99);
-    /// assert_eq!(cpu.ram[3], 0x02); // the bit 1 of flags is always set
+    /// assert_eq!(cpu.ram[2], 0x02); // the bit 1 of flags is always set
+    /// assert_eq!(cpu.ram[3], 0x99);
     /// ```
     pub fn push_psw(&mut self) {
         self.sp += 2;

@@ -30,17 +30,20 @@ impl Registers {
 
     /// give access to a merge of the register b and c
     pub fn bc(&self) -> u16 {
-        unsafe { *std::mem::transmute::<&u8, &u16>(&self.b) }
+        let bc = unsafe { *std::mem::transmute::<&u8, &u16>(&self.b) };
+        u16::from_be(bc)
     }
 
     /// give access to a merge of the register d and e
     pub fn de(&self) -> u16 {
-        unsafe { *std::mem::transmute::<&u8, &u16>(&self.d) }
+        let de = unsafe { *std::mem::transmute::<&u8, &u16>(&self.d) };
+        u16::from_be(de)
     }
 
     /// give access to a merge of the register h and l
     pub fn hl(&self) -> u16 {
-        unsafe { *std::mem::transmute::<&u8, &u16>(&self.h) }
+        let hl = unsafe { *std::mem::transmute::<&u8, &u16>(&self.h) };
+        u16::from_be(hl)
     }
 
     /// set the merge of the registers flags and a
@@ -49,19 +52,23 @@ impl Registers {
         self.fix_flags();
     }
 
-    /// give access to a merge of the register b and c
-    pub fn bc_mut(&mut self) -> &mut u16 {
-        unsafe { std::mem::transmute::<&mut u8, &mut u16>(&mut self.b) }
+    /// set the merge of the registers B and C to value
+    pub fn bc_set(&mut self, value: u16) {
+        let bc = unsafe { std::mem::transmute::<&mut u8, &mut u16>(&mut self.b) };
+        *bc = u16::to_be(value);
     }
 
-    /// give access to a merge of the register d and e
-    pub fn de_mut(&mut self) -> &mut u16 {
-        unsafe { std::mem::transmute::<&mut u8, &mut u16>(&mut self.d) }
+    /// set the merge of the registers D and E to value
+    pub fn de_set(&mut self, value: u16) {
+        let de = unsafe { std::mem::transmute::<&mut u8, &mut u16>(&mut self.d) };
+        *de = u16::to_be(value);
     }
 
-    /// give access to a merge of the register h and l
-    pub fn hl_mut(&mut self) -> &mut u16 {
-        unsafe { std::mem::transmute::<&mut u8, &mut u16>(&mut self.h) }
+    /// set the merge of the registers H and L to value
+    pub fn hl_set(&mut self, value: u16) {
+        let hl = unsafe { std::mem::transmute::<&mut u8, &mut u16>(&mut self.h) };
+        // *hl = u16::to_be(value);
+        *hl = value;
     }
 }
 
@@ -116,6 +123,6 @@ mod tests {
         let c = 0xc0; // 0b1100_0000
         registers.b = b;
         registers.c = c;
-        assert_eq!(registers.bc(), 0xC003);
+        assert_eq!(registers.bc(), u16::to_be(0xC003));
     }
 }

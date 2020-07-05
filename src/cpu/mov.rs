@@ -37,7 +37,7 @@ mod tests {
         assert_eq!(cpu.reg.a, 42);
         assert_eq!(cpu.reg.d, 42);
 
-        *cpu.reg.hl_mut() = 0; // we want to modify the address 0
+        cpu.reg.hl_set(0); // we want to modify the address 0
         cpu.pc = 1;
         cpu.cycle(); // execute the mov M <- D
         assert_eq!(cpu.ram[0], 42);

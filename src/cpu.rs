@@ -1,5 +1,6 @@
 mod dcr;
 mod halt;
+mod lhld;
 mod mov;
 mod mvi;
 mod nop;
@@ -201,13 +202,6 @@ impl Cpu {
         self.pc += 3;
     }
 
-    /// Load H:L from memory
-    /// Write the content of mem[d16] to hl
-    fn lhld(&mut self, d16: u16) {
-        *self.reg.hl_mut() = self.ram.dword(d16 as usize);
-        self.pc += 3;
-    }
-
     /// Store H:L to memory
     /// Write the content of hl to mem[d16]
     fn shld(&mut self, d16: u16) {
@@ -238,9 +232,9 @@ impl Cpu {
     /// Load register pair immediate
     fn lxi(&mut self, rp: u8, d16: u16) {
         match rp {
-            0x00 => *self.reg.bc_mut() = d16,
-            0x01 => *self.reg.de_mut() = d16,
-            0x02 => *self.reg.hl_mut() = d16,
+            0x00 => self.reg.bc_set(d16),
+            0x01 => self.reg.de_set(d16),
+            0x02 => self.reg.hl_set(d16),
             0x03 => self.sp = d16,
             a => panic!("LXI called with invalid register pair: {:x}", a),
         }
@@ -250,28 +244,26 @@ impl Cpu {
     /// Decrement register pair
     /// Do not update any flags
     fn dcx(&mut self, rp: u8) {
-        let rp = match rp {
-            0x00 => self.reg.bc_mut(),
-            0x01 => self.reg.de_mut(),
-            0x02 => self.reg.hl_mut(),
-            0x03 => &mut self.sp,
+        match rp {
+            0x00 => self.reg.bc_set(self.reg.bc().wrapping_sub(1)),
+            0x01 => self.reg.de_set(self.reg.de().wrapping_sub(1)),
+            0x02 => self.reg.hl_set(self.reg.hl().wrapping_sub(1)),
+            0x03 => self.sp = self.sp.wrapping_sub(1),
             a => panic!("DNX called with invalid register pair: {:x}", a),
-        };
-        *rp = rp.wrapping_sub(1);
+        }
         self.pc += 1;
     }
 
     /// Increment register pair
     /// Do not update any flags
     fn inx(&mut self, rp: u8) {
-        let rp = match rp {
-            0x00 => self.reg.bc_mut(),
-            0x01 => self.reg.de_mut(),
-            0x02 => self.reg.hl_mut(),
-            0x03 => &mut self.sp,
+        match rp {
+            0x00 => self.reg.bc_set(self.reg.bc().wrapping_add(1)),
+            0x01 => self.reg.de_set(self.reg.de().wrapping_add(1)),
+            0x02 => self.reg.hl_set(self.reg.hl().wrapping_add(1)),
+            0x03 => self.sp = self.sp.wrapping_add(1),
             a => panic!("INX called with invalid register pair: {:x}", a),
-        };
-        *rp = rp.wrapping_add(1);
+        }
         self.pc += 1;
     }
 

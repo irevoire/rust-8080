@@ -10,25 +10,24 @@ impl Cpu {
     /// let mut cpu = Cpu::from_raw(vec![0b11010001, 0x00, 0xff, 0xaa]);
     /// cpu.pc = 0; // pop the content of sp to 01 (de)
     /// cpu.sp = 2; // make sp point to 0xff, 0xff
-    /// *cpu.reg.de_mut() = 0;
+    /// cpu.reg.de_set(0);
     /// cpu.cycle();
     /// assert_eq!(cpu.sp, 0);
     /// assert_eq!(cpu.pc, 1);
     /// assert_eq!(cpu.reg.d, 0xff);
     /// assert_eq!(cpu.reg.e, 0xaa);
-    /// assert_eq!(cpu.reg.de(), 0xaaff);
+    /// assert_eq!(cpu.reg.de(), 0xffaa);
     /// ```
     pub fn pop(&mut self, rp: u8) {
         let tmp = self.internal_pop();
 
-        let rp = match rp {
-            0x00 => self.reg.bc_mut(),
-            0x01 => self.reg.de_mut(),
-            0x02 => self.reg.hl_mut(),
+        match rp {
+            0x00 => self.reg.bc_set(tmp),
+            0x01 => self.reg.de_set(tmp),
+            0x02 => self.reg.hl_set(tmp),
             a => panic!("POP called with invalid register pair: {:x}", a),
-        };
+        }
         self.sp -= 2;
-        *rp = tmp;
         self.pc += 1;
     }
 
@@ -38,7 +37,7 @@ impl Cpu {
     /// ```rust
     /// use rust_8080::*;
     ///
-    /// let mut cpu = Cpu::from_raw(vec![0b11110001, 0x00, 0xff, 0xaa]);
+    /// let mut cpu = Cpu::from_raw(vec![0b11110001, 0x00, 0xaa, 0xff]);
     /// cpu.pc = 0; // pop the content of sp to 11 (a + flags)
     /// cpu.sp = 2; // make sp point to 0xff, 0xff
     /// cpu.reg.a = 0;
@@ -70,17 +69,16 @@ mod tests {
         let mut cpu = Cpu::from_raw(vec![0x00, 0x01, 0x02, 0x03]);
         cpu.pc = 0;
         cpu.sp = 0; // make sp point to 0x00, 0x01
-        *cpu.reg.bc_mut() = 0x4235;
+        cpu.reg.bc_set(0x4235);
         cpu.push(0x00); // bc
         assert_eq!(cpu.sp, 2);
         assert_eq!(cpu.pc, 1);
-        assert_eq!(cpu.reg.bc(), 0x4235);
+        assert_eq!(cpu.reg.bc(), 0x4235); // this could be wrong on arm?
         assert_eq!(cpu.reg.de(), 0x0000);
 
         cpu.pop(0x01); // de
         assert_eq!(cpu.sp, 0);
         assert_eq!(cpu.pc, 2);
-        assert_eq!(cpu.reg.bc(), 0x4235);
-        assert_eq!(cpu.reg.de(), 0x4235);
+        assert_eq!(cpu.reg.bc(), cpu.reg.de());
     }
 }
